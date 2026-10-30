@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plant Doctor — Diagnostic IA des plantes</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="hero">
+  <div class="sky"></div>
+  <div class="sun" aria-hidden="true"></div>
+  <div class="field" aria-hidden="true"></div>
+  <div class="hero-text">
+    <p class="brand">🌿 Plant Doctor</p>
+    <h1>Votre champ se réveille. Voyez ce que vos plantes ont.</h1>
+    <p class="tagline">Photographiez une feuille : l'IA identifie la maladie et propose des conseils de traitement.</p>
+  </div>
+</header>
+
+<main id="app">
+
+  <!-- ÉTAPE 1 : IMPORT -->
+  <section id="step-upload" class="card step">
+    <div class="step-head"><span class="step-num">1</span><h2>Importez une photo</h2></div>
+    <p class="hint">Une feuille nette, bien éclairée et cadrée de près donne les meilleurs résultats.</p>
+
+    <label class="dropzone" id="dropzone" for="file-input">
+      <div id="dropzone-empty">
+        <div class="dropzone-icon">📷</div>
+        <p><strong>Touchez pour importer</strong> ou glissez une image ici</p>
+        <p class="hint-small">JPEG, PNG ou WEBP</p>
+      </div>
+      <img id="preview-img" class="preview-img hidden" alt="Aperçu de la photo importée">
+    </label>
+    <input type="file" id="file-input" accept="image/*" hidden>
+
+    <div class="actions">
+      <button id="btn-analyze" class="btn btn-primary" disabled>Analyser une plante</button>
+      <button id="btn-reset-upload" class="btn btn-ghost hidden">Changer d'image</button>
+    </div>
+
+    <p id="upload-error" class="error hidden"></p>
+  </section>
+
+  <!-- CHARGEMENT -->
+  <section id="step-loading" class="card step hidden">
+    <div class="loader"></div>
+    <p id="loading-text">Analyse de l'image en cours…</p>
+  </section>
+
+  <!-- ÉTAPE 2 : RÉSULTAT -->
+  <section id="step-result" class="card step hidden">
+    <div class="step-head"><span class="step-num">2</span><h2>Résultat du diagnostic</h2></div>
+
+    <div class="result-layout">
+      <img id="result-img" class="result-img" alt="Photo analysée">
+
+      <div class="result-details">
+        <div id="result-badge" class="result-badge">
+          <div class="result-line"><span class="emoji">🌿</span><span>Plante : <strong id="result-plant">—</strong></span></div>
+          <div class="result-line"><span class="emoji" id="result-disease-emoji">⚠️</span><span id="result-disease-label">Maladie : <strong id="result-disease">—</strong></span></div>
+          <div class="result-line"><span class="emoji">🎯</span><span>Confiance : <strong id="result-confidence">—</strong></span></div>
+          <div class="confidence-bar-track"><div id="confidence-bar-fill" class="confidence-bar-fill"></div></div>
+          <p id="low-confidence-warning" class="warning hidden">
+            Confiance faible : refaites une photo plus nette, plus proche de la feuille et bien éclairée.
+          </p>
+        </div>
+
+        <details id="alt-predictions" class="alt-predictions hidden">
+          <summary>Voir les autres hypothèses du modèle</summary>
+          <ul id="alt-predictions-list"></ul>
+        </details>
+
+        <button id="btn-advice" class="btn btn-primary hidden">Obtenir des conseils</button>
+      </div>
+    </div>
+
+    <button id="btn-restart" class="btn btn-ghost">Nouvelle analyse</button>
+  </section>
+
+  <!-- ÉTAPE 3 : CONSEILS GEMINI -->
+  <section id="step-advice" class="card step hidden">
+    <div class="step-head"><span class="step-num">3</span><h2>Conseils &amp; recommandations</h2></div>
+    <p class="hint" id="advice-subtitle"></p>
+
+    <div id="advice-loading" class="advice-loading hidden">
+      <div class="loader small"></div>
+      <p>Gemini prépare vos conseils…</p>
+    </div>
+
+    <div id="advice-content" class="hidden">
+      <ul id="advice-list" class="advice-list"></ul>
+      <div class="actions">
+        <button id="btn-translate" class="btn btn-outline">Traduire en fongbé</button>
+        <button id="btn-listen" class="btn btn-outline hidden">🔊 Écouter en fongbé</button>
+      </div>
+      <p id="translate-note" class="note hidden"></p>
+    </div>
+
+    <p id="advice-note" class="note hidden"></p>
+
+    <button id="btn-restart-2" class="btn btn-ghost">Nouvelle analyse</button>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <p>Prototype de hackathon. Diagnostic par MobileNetV2 entraîné sur PlantVillage (38 classes). Conseils générés par Gemini : à confirmer auprès d'un technicien agricole.</p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
