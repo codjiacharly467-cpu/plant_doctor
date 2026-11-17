@@ -2,24 +2,25 @@
 Plant Doctor — backend API
 ===========================
 
-Two endpoints:
-  POST /api/predict  -> image in, {plant, disease, healthy, confidence, all_predictions} out
-  POST /api/advice    -> disease name in, {summary, recommendations, sources} out (RAG over live web search)
+Endpoints :
+  POST /api/predict     -> image en entrée, {plant, disease, healthy, confidence, all_predictions} en sortie
+  POST /api/advice      -> plante + maladie en entrée, {summary, recommendations} en sortie (Gemini)
+  POST /api/translate   -> textes français en entrée, traductions en fongbé en sortie (Gemini)
+  POST /api/tts         -> textes en fon en entrée, fichier audio WAV en sortie (Meta MMS-TTS)
+  GET  /api/gemini-models, GET /api/health -> diagnostic
 
-Model: linkanjarad/mobilenet_v2_1.0_224-plant-disease-identification
-  - Fine-tuned MobileNetV2 (google/mobilenet_v2_1.0_224 backbone) on the PlantVillage /
-    "New Plant Diseases Dataset" (38 classes: 26 diseases + 12 healthy states).
-  - Reported eval accuracy: 95.4% (see model card).
-  - Loaded through `transformers` (AutoImageProcessor + AutoModelForImageClassification),
-    weights are pulled from the Hugging Face Hub the first time the server starts
-    (cached locally afterwards) — this REQUIRES outbound internet access once, at
-    server startup / first request. No API key or payment is needed, the repo is public.
+Modèle de vision : linkanjarad/mobilenet_v2_1.0_224-plant-disease-identification
+  - MobileNetV2 fine-tuné sur PlantVillage / "New Plant Diseases Dataset"
+    (38 classes : maladies et états sains). Voir la fiche du modèle pour ses performances.
+  - Chargé via `transformers` (AutoImageProcessor + AutoModelForImageClassification).
+    Les poids sont téléchargés depuis le Hugging Face Hub au premier appel puis mis en cache
+    localement : un accès internet est nécessaire une première fois. Aucune clé n'est requise.
 
-"Conseils" feature (Gemini):
-  - /api/advice calls the Gemini API (free tier) with the GEMINI_API_KEY env var.
-  - Gemini is asked for a strict JSON answer (summary + recommendations), in French.
-  - Answers are cached in memory per (plant, disease) to save the free quota.
-  - If the key is missing or the quota is exhausted, the API says so plainly.
+Conseils et traduction (Gemini) :
+  - Appel de l'API Gemini (palier gratuit) avec la variable d'environnement GEMINI_API_KEY.
+  - Réponse JSON stricte en français ; réponses des conseils mises en cache par (plante, maladie)
+    pour économiser le quota gratuit.
+  - Si la clé est absente ou le quota épuisé, l'API le signale clairement.
 """
 
 import io
