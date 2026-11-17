@@ -25,6 +25,7 @@ Model: linkanjarad/mobilenet_v2_1.0_224-plant-disease-identification
 import io
 import os
 import json
+import time
 import wave
 import hashlib
 import logging
@@ -51,8 +52,24 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 # gemini-2.5-* a été arrêté le 16/10/2026 (d'où l'erreur 404) -> on utilise la génération 3.x,
 # avec repli automatique sur le modèle suivant si l'un renvoie 404/429.
 GEMINI_MODELS = [m.strip() for m in os.getenv(
-    "GEMINI_MODEL", "gemini-3.5-flash,gemini-3.1-flash-lite").split(",") if m.strip()]
+    "GEMINI_MODEL", "gemini-3.5-flash,gemini-3.1-flash-lite,gemini-3.5-flash-lite").split(",") if m.strip()]
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+
+
+def post_gemini(model, payload, timeout=30, retries=2):
+    """POST vers Gemini ; réessaie après une courte pause si le modèle est surchargé (500/503)."""
+    for attempt in range(retries + 1):
+        resp = requests.post(
+            GEMINI_URL.format(model=model),
+            headers={"x-goog-api-key": GEMINI_API_KEY, "Content-Type": "application/json"},
+            json=payload, timeout=timeout,
+        )
+        if resp.status_code in (500, 503) and attempt < retries:
+            wait = 2 * (attempt + 1)
+            log.warning("%s surchargé (HTTP %s), nouvel essai dans %ss", model, resp.status_code, wait)
+            time.sleep(wait)
+            continue
+        return resp
 
 app = FastAPI(title="Plant Doctor API")
 app.add_middleware(
@@ -219,11 +236,7 @@ async def advice(req: AdviceRequest):
     data, errors, quota = None, [], False
     for model in GEMINI_MODELS:
         try:
-            resp = requests.post(
-                GEMINI_URL.format(model=model),
-                headers={"x-goog-api-key": GEMINI_API_KEY, "Content-Type": "application/json"},
-                json=payload, timeout=30,
-            )
+            resp = post_gemini(model, payload, timeout=30)
             if resp.status_code != 200:
                 try:
                     msg = resp.json().get("error", {}).get("message", resp.text)
@@ -261,7 +274,7 @@ async def advice(req: AdviceRequest):
 # NB : les modèles récents (3.5 flash-lite, 3.6 flash...) n'acceptent plus
 # temperature/top_p/top_k : on ne les envoie donc pas ici.
 TRANSLATE_MODELS = [m.strip() for m in os.getenv(
-    "GEMINI_TRANSLATE_MODEL", "gemini-3.5-flash-lite,gemini-3.1-flash-lite").split(",") if m.strip()]
+    "GEMINI_TRANSLATE_MODEL", "gemini-3.5-flash-lite,gemini-3.1-flash-lite,gemini-3.5-flash").split(",") if m.strip()]
 
 TRANSLATE_SCHEMA = {
     "type": "OBJECT",
@@ -301,11 +314,7 @@ async def translate_fon(req: TranslateRequest):
     errors = []
     for model in TRANSLATE_MODELS:
         try:
-            resp = requests.post(
-                GEMINI_URL.format(model=model),
-                headers={"x-goog-api-key": GEMINI_API_KEY, "Content-Type": "application/json"},
-                json=payload, timeout=40,
-            )
+            resp = post_gemini(model, payload, timeout=40)
             if resp.status_code != 200:
                 try:
                     msg = resp.json().get("error", {}).get("message", resp.text)
@@ -333,6 +342,8 @@ async def translate_fon(req: TranslateRequest):
 # Modèle VITS léger (~145 Mo, téléchargé une seule fois depuis Hugging Face).
 # Licence CC-BY-NC 4.0 : usage non commercial.
 TTS_MODEL_NAME = os.getenv("TTS_MODEL", "facebook/mms-tts-fon")
+# TTS_ENABLED=0 désactive la voix (utile sur un hébergeur à 512 Mo de RAM, ex. Render gratuit).
+TTS_ENABLED = os.getenv("TTS_ENABLED", "1") != "0"
 _tts = {"model": None, "tok": None}
 _tts_lock = threading.Lock()
 _tts_cache: Dict[str, bytes] = {}
@@ -355,6 +366,9 @@ class TTSRequest(BaseModel):
 @app.post("/api/tts")
 def tts_fon(req: TTSRequest):
     import numpy as np
+
+    if not TTS_ENABLED:
+        raise HTTPException(status_code=503, detail="La lecture audio est désactivée sur cet hébergement.")
 
     texts = [t.strip()[:600] for t in req.texts if t and t.strip()][:12]
     if not texts:
@@ -415,7 +429,7 @@ async def gemini_models():
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "device": _device, "model_loaded": _model is not None}
+    return {"status": "ok", "device": _device, "model_loaded": _model is not None, "tts": TTS_ENABLED}
 
 
 # ---------------------------------------------------------------------------

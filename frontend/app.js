@@ -39,6 +39,7 @@ const els = {
   adviceContent: $("advice-content"),
   adviceList: $("advice-list"),
   adviceNote: $("advice-note"),
+  btnRetry: $("btn-retry"),
   btnTranslate: $("btn-translate"),
   btnListen: $("btn-listen"),
   translateNote: $("translate-note"),
@@ -105,6 +106,7 @@ function handleFile(file) {
   els.previewImg.classList.remove("hidden");
   els.dropzoneEmpty.classList.add("hidden");
   els.btnAnalyze.disabled = false;
+  FX.pop();
   els.btnResetUpload.classList.remove("hidden");
   els.uploadError.classList.add("hidden");
 }
@@ -137,6 +139,7 @@ els.btnAnalyze.addEventListener("click", async () => {
     renderResult(data);
   } catch (err) {
     showStep(els.stepUpload);
+    FX.error();
     showUploadError("Échec de l'analyse : " + err.message + " — vérifiez que le serveur backend tourne bien.");
   }
 });
@@ -179,6 +182,7 @@ function renderResult(data) {
   els.btnAdvice.classList.remove("hidden"); // always offer advice (healthy => care tips)
 
   showStep(els.stepResult);
+  FX.success();
 }
 
 // --- Conseils (Gemini) ---
@@ -191,6 +195,7 @@ els.btnAdvice.addEventListener("click", async () => {
     : `Conseils Gemini pour : ${lastPrediction.plant} — ${lastPrediction.disease}`;
   els.adviceContent.classList.add("hidden");
   els.adviceNote.classList.add("hidden");
+  els.btnRetry.classList.add("hidden");
   els.adviceLoading.classList.remove("hidden");
 
   try {
@@ -208,19 +213,23 @@ els.btnAdvice.addEventListener("click", async () => {
     renderAdvice(data);
   } catch (err) {
     els.adviceLoading.classList.add("hidden");
+    FX.error();
     els.adviceNote.textContent = "Impossible de récupérer les conseils : " + err.message;
     els.adviceNote.classList.remove("hidden");
+    els.btnRetry.classList.remove("hidden");
   }
 });
 
 let lastAdvice = null;      // { summary, recommendations } en français
 let fonTexts = null;        // traduction en fongbé (même ordre : résumé puis recommandations)
 let showingFon = false;
+let ttsEnabled = true;      // désactivé côté serveur sur les petits hébergeurs
 let audioEl = null;         // lecteur audio en cours
 let fonAudioUrl = null;     // audio déjà généré pour la traduction affichée
 
 function stopAudio() {
   if (audioEl) { audioEl.pause(); audioEl = null; }
+  FX.duck(false);
   els.btnListen.textContent = "🔊 Écouter en fongbé";
 }
 
@@ -242,12 +251,17 @@ function drawAdvice(summary, recs) {
 function renderAdvice(data) {
   els.adviceLoading.classList.add("hidden");
 
+  const failed = !(data.recommendations && data.recommendations.length > 0);
   if (data.note) {
-    els.adviceNote.textContent = data.note;
+    els.adviceNote.textContent =
+      failed && /HTTP 50[03]/.test(data.note)
+        ? "Les serveurs de Gemini sont très sollicités en ce moment (ce n'est pas votre quota). Réessayez dans quelques secondes."
+        : data.note;
     els.adviceNote.classList.remove("hidden");
   }
+  els.btnRetry.classList.toggle("hidden", !failed);
 
-  if (data.recommendations && data.recommendations.length > 0) {
+  if (!failed) {
     lastAdvice = { summary: data.summary || "", recommendations: data.recommendations };
     fonTexts = null;
     showingFon = false;
@@ -258,6 +272,7 @@ function renderAdvice(data) {
     els.translateNote.classList.add("hidden");
     drawAdvice(lastAdvice.summary, lastAdvice.recommendations);
     els.adviceContent.classList.remove("hidden");
+    FX.chime();
   }
 }
 
@@ -339,6 +354,7 @@ els.btnListen.addEventListener("click", async () => {
     audioEl = new Audio(fonAudioUrl);
     audioEl.addEventListener("ended", stopAudio);
     await audioEl.play();
+    FX.duck(true);   // la musique baisse pendant la lecture en fongbé
     els.btnListen.textContent = "⏹ Arrêter";
   } catch (err) {
     stopAudio();
@@ -354,10 +370,17 @@ function showFon() {
   drawAdvice(hasSummary ? fonTexts[0] : "", hasSummary ? fonTexts.slice(1) : fonTexts);
   showingFon = true;
   els.btnTranslate.textContent = "Voir en français";
-  els.btnListen.classList.remove("hidden");
+  els.btnListen.classList.toggle("hidden", !ttsEnabled);
   els.translateNote.textContent = "Traduction automatique en fongbé : faites-la relire par un locuteur avant de l'utiliser.";
   els.translateNote.classList.remove("hidden");
 }
 
+els.btnRetry.addEventListener("click", () => els.btnAdvice.click());
 els.btnRestart.addEventListener("click", resetAll);
 els.btnRestart2.addEventListener("click", resetAll);
+
+// Le serveur indique si la lecture audio est disponible
+fetch(`${API_BASE}/api/health`)
+  .then((r) => r.json())
+  .then((d) => { ttsEnabled = d.tts !== false; })
+  .catch(() => {});

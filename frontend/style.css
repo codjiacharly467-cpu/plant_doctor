@@ -29,60 +29,62 @@ h1, h2, h3, .brand, .btn {
 }
 h2 { margin: 0; font-size: 1.5rem; font-weight: 700; letter-spacing: -.01em; }
 
-/* ---------- Hero : lever de soleil sur un champ ---------- */
+/* ---------- Hero : photo du champ au lever du soleil ---------- */
 .hero {
-  position: relative;
-  min-height: 430px;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 3rem 1.5rem 7rem;
-  background: linear-gradient(180deg, #08160f 0%, #123221 55%, #7a5a2a 100%);
+  position: relative; isolation: isolate; overflow: hidden;
+  min-height: 560px;
+  display: flex; align-items: flex-end; justify-content: center; text-align: center;
+  padding: 3rem 1.5rem 6.5rem;
+  background: #2a1a08;
 }
-.sun {
-  position: absolute;
-  left: 50%; bottom: 24%;
-  width: 340px; height: 340px;
-  margin-left: -170px;
-  border-radius: 50%;
-  background: radial-gradient(circle, #fff1c2 0%, var(--dawn) 22%, rgba(242,166,59,.45) 48%, transparent 70%);
-  animation: rise 2.4s cubic-bezier(.2,.7,.2,1) both;
+.hero-photo, .hero-photo img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.hero-photo img {
+  object-fit: cover; object-position: 50% 45%;
+  transform-origin: 55% 45%;
+  animation: kenburns 28s ease-in-out infinite alternate;
 }
-@keyframes rise {
-  from { transform: translateY(150px); opacity: 0; }
-  to   { transform: translateY(0); opacity: 1; }
+@keyframes kenburns { from { transform: scale(1); } to { transform: scale(1.09); } }
+.hero::before {            /* voile pour lire le texte et fondre la photo dans la page */
+  content: ""; position: absolute; inset: 0; z-index: 1;
+  background: linear-gradient(180deg, rgba(8,22,15,.45) 0%, rgba(8,22,15,.05) 30%, rgba(8,22,15,.6) 68%, var(--night) 100%);
 }
-.field {
-  position: absolute;
-  left: -30%; right: -30%; bottom: 0;
-  height: 46%;
-  background:
-    repeating-linear-gradient(90deg, rgba(155,208,122,.38) 0 2px, transparent 2px 70px),
-    repeating-linear-gradient(0deg, rgba(155,208,122,.2) 0 1px, transparent 1px 34px),
-    linear-gradient(180deg, #14301f, var(--night));
-  transform: perspective(420px) rotateX(62deg);
-  transform-origin: 50% 100%;
-  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 45%);
-          mask-image: linear-gradient(180deg, transparent 0%, #000 45%);
+.fireflies { position: absolute; inset: 0; z-index: 2; pointer-events: none; overflow: hidden; }
+.firefly {
+  position: absolute; border-radius: 50%;
+  background: radial-gradient(circle, #fff3c2 0%, rgba(255,210,122,0) 70%);
+  animation: drift linear infinite;
 }
-.hero::after {            /* fondu vers le reste de la page */
-  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 90px;
-  background: linear-gradient(180deg, transparent, var(--night));
+@keyframes drift {
+  0%   { transform: translate(0, 0) scale(.6); opacity: 0; }
+  20%  { opacity: .95; }
+  80%  { opacity: .7; }
+  100% { transform: translate(var(--dx), -170px) scale(1.1); opacity: 0; }
 }
-.hero-text { position: relative; z-index: 2; max-width: 36rem; }
-.brand { margin: 0 0 .8rem; font-weight: 700; font-size: 1.05rem; color: var(--dawn); }
+.hero-text { position: relative; z-index: 3; max-width: 36rem; animation: fadeUp .9s .2s both; }
+.brand { margin: 0 0 .8rem; font-weight: 700; font-size: 1.05rem; color: var(--dawn); text-shadow: 0 1px 10px rgba(0,0,0,.6); }
 h1 {
-  margin: 0;
-  font-size: clamp(1.9rem, 5.5vw, 3rem);
-  line-height: 1.08;
-  font-weight: 800;
-  letter-spacing: -.025em;
-  color: #fff;
-  text-shadow: 0 2px 24px rgba(0,0,0,.45);
+  margin: 0; font-size: clamp(1.9rem, 5.5vw, 3rem); line-height: 1.08; font-weight: 800;
+  letter-spacing: -.025em; color: #fff; text-shadow: 0 2px 26px rgba(0,0,0,.6);
 }
-.tagline { margin: 1rem auto 0; max-width: 30em; color: #f3e6c8; font-size: 1.05rem; text-shadow: 0 1px 12px rgba(0,0,0,.5); }
+.tagline { margin: 1rem auto 0; max-width: 30em; color: #f7ebd0; font-size: 1.05rem; text-shadow: 0 1px 14px rgba(0,0,0,.7); }
+
+@keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+
+/* ---------- Contrôles son ---------- */
+.fx-controls {
+  position: fixed; top: calc(env(safe-area-inset-top, 0px) + .8rem); right: .8rem; z-index: 50;
+  display: flex; gap: .4rem; padding: .3rem;
+  background: rgba(8,22,15,.55); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--line); border-radius: 999px;
+}
+.fx-btn {
+  width: 38px; height: 38px; border: 0; border-radius: 50%; cursor: pointer; font-size: 1.1rem;
+  background: rgba(155,208,122,.16); color: #fff; transition: transform .1s, opacity .15s, background .15s;
+}
+.fx-btn:hover { background: rgba(155,208,122,.3); }
+.fx-btn:active { transform: scale(.92); }
+.fx-btn[aria-pressed="false"] { opacity: .4; filter: grayscale(1); }
+.fx-btn:focus-visible { outline: 3px solid var(--dawn); outline-offset: 2px; }
 
 /* ---------- Cartes ---------- */
 #app { max-width: 720px; margin: -3.5rem auto 2rem; padding: 0 1rem; position: relative; z-index: 3; }
@@ -125,6 +127,15 @@ h1 {
 .actions { display: flex; gap: .7rem; flex-wrap: wrap; }
 
 /* ---------- Boutons ---------- */
+.btn { position: relative; overflow: hidden; }
+.btn-primary:hover:not(:disabled) { transform: translateY(-2px); }
+.ripple {
+  position: absolute; border-radius: 50%; pointer-events: none;
+  background: rgba(255,255,255,.4); transform: scale(0); animation: ripple .6s ease-out forwards;
+}
+@keyframes ripple { to { transform: scale(1); opacity: 0; } }
+.step:not(.hidden) { animation: fadeUp .5s both; }
+
 .btn {
   font-size: 1.02rem; font-weight: 700;
   padding: .85rem 1.7rem;
@@ -193,11 +204,12 @@ h1 {
 .footer { max-width: 640px; margin: 0 auto; padding: 0 1.5rem 2.2rem; text-align: center; color: var(--mist); font-size: .82rem; }
 
 @media (max-width: 480px) {
-  .hero { min-height: 400px; padding-bottom: 6rem; }
+  .hero { min-height: 480px; padding-bottom: 6rem; }
   .result-layout { flex-direction: column; align-items: center; }
   .result-img { max-width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .sun, .loader { animation: none; }
+  .hero-photo img, .hero-text, .step, .loader { animation: none !important; }
+  .fireflies { display: none; }
   html { scroll-behavior: auto; }
 }

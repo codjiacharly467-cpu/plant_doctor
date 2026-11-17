@@ -1,3 +1,13 @@
+---
+title: Plant Doctor
+emoji: 🌿
+colorFrom: green
+colorTo: yellow
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # 🌿 Plant Doctor — diagnostic IA de maladies des plantes
 
 Prototype de hackathon (budget 0 €) : photo de feuille → diagnostic IA → conseils de traitement → traduction en fongbé → lecture à voix haute.
@@ -12,11 +22,21 @@ Prototype de hackathon (budget 0 €) : photo de feuille → diagnostic IA → c
 | Composant | Choix | Détails |
 |---|---|---|
 | Modèle de vision | [`linkanjarad/mobilenet_v2_1.0_224-plant-disease-identification`](https://huggingface.co/linkanjarad/mobilenet_v2_1.0_224-plant-disease-identification) | MobileNetV2 fine-tuné sur PlantVillage, 38 classes (maladies et plantes saines), chargé via `transformers`. Léger (~14 Mo), rapide sur CPU. |
-| Conseils | API Gemini (palier gratuit) | Résumé et recommandations en français, sortie JSON structurée, cache en mémoire. Modèles `gemini-3.5-flash` puis `gemini-3.1-flash-lite` en repli. |
-| Traduction | API Gemini (palier gratuit) | Français → fongbé. Modèles `gemini-3.5-flash-lite` puis `gemini-3.1-flash-lite` en repli. |
+| Conseils | API Gemini (palier gratuit) | Résumé et recommandations en français, sortie JSON structurée, cache en mémoire. Modèles `gemini-3.5-flash`, puis `gemini-3.1-flash-lite` et `gemini-3.5-flash-lite` en repli ; 2 nouveaux essais automatiques si un modèle est surchargé (503). |
+| Traduction | API Gemini (palier gratuit) | Français → fongbé. Modèles `gemini-3.5-flash-lite`, puis `gemini-3.1-flash-lite` et `gemini-3.5-flash` en repli. |
 | Voix | [`facebook/mms-tts-fon`](https://huggingface.co/facebook/mms-tts-fon) (Meta MMS-TTS) | Synthèse vocale en fon (VITS, ~150 Mo, téléchargé au premier clic sur « Écouter »). |
 | Backend | FastAPI + Uvicorn | Sert l'API et le frontend statique (un seul serveur). |
 | Frontend | HTML / CSS / JS vanilla | Aucun build, fonctionne sur mobile. |
+
+## Ambiance sonore et effets
+
+- Les **bruitages** (clics, succès, erreur) et la **musique d'ambiance** sont générés par le navigateur (Web Audio) : aucun fichier audio, donc aucun droit d'auteur à gérer.
+- Les navigateurs interdisent le son avant un premier clic : la musique démarre au premier toucher.
+- Deux boutons en haut à droite coupent la musique (🎵) et les bruitages avec vibrations (🔔). Le choix est mémorisé.
+- La **vibration** ne fonctionne que sur les téléphones Android (Chrome, Firefox), pas sur iPhone ni sur ordinateur.
+- Pendant la lecture audio en fongbé, la musique baisse automatiquement.
+- Les animations sont désactivées pour les personnes qui ont réduit les mouvements dans leur système.
+- Volumes réglables en haut de `frontend/effects.js` (`MUSIC_LEVEL`, `SFX_LEVEL`).
 
 ## Limites à connaître
 
@@ -35,6 +55,7 @@ Aucune clé n'est écrite dans le code. Tout passe par des variables d'environne
 | `GEMINI_MODEL` | Modèles des conseils, séparés par des virgules (le premier est essayé en premier) | Non |
 | `GEMINI_TRANSLATE_MODEL` | Modèles de traduction, séparés par des virgules | Non |
 | `TTS_MODEL` | Modèle vocal (défaut : `facebook/mms-tts-fon`) | Non |
+| `TTS_ENABLED` | `0` désactive la lecture audio (hébergeur à faible mémoire). Défaut : `1` | Non |
 | `PORT` | Port d'écoute dans Docker (défaut 7860) | Non |
 
 ## Installation locale
@@ -90,15 +111,17 @@ Si les conseils ou la traduction échouent, le message affiché donne le code d'
 
 ### Hugging Face Spaces (recommandé)
 
-1. Créer un Space avec le SDK **Docker** et y copier ce dossier (avec le `Dockerfile` à la racine).
+Les lignes `---` en tête de ce README sont la configuration du Space (SDK Docker, port 7860) : ne les supprimez pas.
+
+1. Créer un Space avec le SDK **Docker** (modèle « Blank ») et y envoyer ce dossier (avec le `Dockerfile` à la racine).
 2. Dans **Settings → Variables and secrets**, ajouter `GEMINI_API_KEY` comme **secret**.
-3. Le Space se construit seul et expose le site sur `https://<user>-<space>.hf.space`.
+3. Le Space se construit seul (plusieurs minutes : les modèles sont téléchargés pendant le build) et expose le site sur `https://<user>-<space>.hf.space`.
 
 ### Render.com
 
 1. Créer un Web Service relié au dépôt Git ; le `Dockerfile` est détecté automatiquement.
-2. Ajouter `GEMINI_API_KEY` dans les variables d'environnement.
-3. Le plan gratuit met le service en veille après inactivité et sa mémoire est limitée : avec le modèle de vision et la voix chargés, elle peut être insuffisante. Faites un appel de « réveil » avant la démo.
+2. Choisir le plan **Free**, puis ajouter dans les variables d'environnement : `GEMINI_API_KEY` (votre clé) et `TTS_ENABLED=0`.
+3. Le plan gratuit n'a que 512 Mo de RAM : la voix (MMS) est désactivée pour économiser la mémoire. Le service s'endort après 15 minutes d'inactivité (environ une minute pour se réveiller) : ouvrez le site avant la démo.
 
 ## Arborescence
 
@@ -112,5 +135,8 @@ plant-doctor/
 └── frontend/
     ├── index.html
     ├── style.css
-    └── app.js
+    ├── app.js
+    ├── effects.js         # bruitages, vibrations, musique d'ambiance, lucioles
+    ├── hero.avif          # photo d'accueil (champ au lever du soleil)
+    └── hero.jpg           # même photo, version de secours
 ```

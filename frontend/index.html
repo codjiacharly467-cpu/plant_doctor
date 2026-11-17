@@ -8,10 +8,17 @@
 </head>
 <body>
 
+<div class="fx-controls" role="group" aria-label="Son et vibrations">
+  <button id="fx-music" class="fx-btn" type="button" aria-pressed="true" title="Musique d'ambiance" aria-label="Musique d'ambiance">🎵</button>
+  <button id="fx-sfx" class="fx-btn" type="button" aria-pressed="true" title="Bruitages et vibrations" aria-label="Bruitages et vibrations">🔔</button>
+</div>
+
 <header class="hero">
-  <div class="sky"></div>
-  <div class="sun" aria-hidden="true"></div>
-  <div class="field" aria-hidden="true"></div>
+  <picture class="hero-photo" aria-hidden="true">
+    <source srcset="hero.avif" type="image/avif">
+    <img src="hero.jpg" alt="" fetchpriority="high">
+  </picture>
+  <div class="fireflies" aria-hidden="true"></div>
   <div class="hero-text">
     <p class="brand">🌿 Plant Doctor</p>
     <h1>Votre champ se réveille. Voyez ce que vos plantes ont.</h1>
@@ -101,6 +108,7 @@
 
     <p id="advice-note" class="note hidden"></p>
 
+    <button id="btn-retry" class="btn btn-primary hidden">Réessayer</button>
     <button id="btn-restart-2" class="btn btn-ghost">Nouvelle analyse</button>
   </section>
 
@@ -110,6 +118,7 @@
   <p>Prototype de hackathon. Diagnostic par MobileNetV2 entraîné sur PlantVillage (38 classes). Conseils générés par Gemini : à confirmer auprès d'un technicien agricole.</p>
 </footer>
 
+<script src="effects.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
