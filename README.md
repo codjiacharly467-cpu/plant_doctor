@@ -60,21 +60,47 @@ Aucune clé n'est écrite dans le code. Tout passe par des variables d'environne
 
 ## Installation locale
 
+Depuis la racine du dépôt (le dossier qui contient `backend` et `frontend`) :
+
+### Linux / macOS
+
 ```bash
-cd plant-doctor
 python3 -m venv venv
-source venv/bin/activate        # Windows : venv\Scripts\activate
+source venv/bin/activate
 pip install -r backend/requirements.txt
 ```
 
+### Windows (PowerShell)
+
+```powershell
+py -m venv venv
+.\venv\Scripts\python.exe -m pip install -r backend\requirements.txt
+```
+
+L'utilisation directe de `venv\Scripts\python.exe` évite d'avoir à activer l'environnement virtuel. Ainsi, PowerShell ne bloque pas les commandes si sa politique d'exécution interdit les scripts `.ps1`.
+
 ## Lancer le site
+
+### Linux / macOS
 
 ```bash
 source venv/bin/activate
 cd backend
-export GEMINI_API_KEY="votre_clé"
+export GEMINI_API_KEY="votre_cle_gemini"
 uvicorn main:app --port 8000
 ```
+
+### Windows (PowerShell)
+
+Depuis la racine du dépôt, définissez votre clé Gemini pour la session PowerShell en cours, puis démarrez le serveur :
+
+```powershell
+$env:GEMINI_API_KEY = "votre_cle_gemini"
+cd backend
+..\venv\Scripts\python.exe -m uvicorn main:app --port 8000
+```
+
+Remplacez `votre_cle_gemini` par votre clé. Ne la partagez pas et ne l'ajoutez pas au dépôt. Cette variable disparaît quand vous fermez PowerShell ; il faudra la définir à nouveau dans chaque nouvelle session. Pour arrêter le serveur, faites `Ctrl+C` dans PowerShell.
 
 Ouvrez **http://localhost:8000**. Le frontend et l'API sont servis par le même serveur.
 
